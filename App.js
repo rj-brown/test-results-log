@@ -63,7 +63,23 @@ Ext.define('CustomApp', {
             limit: Infinity
         });
         
-        this._testResultsStore = Ext.create('Rally.data.wsapi.Store', {
+        this._testCaseStore = Ext.create('Rally.data.wsapi.Store', {
+            model: 'TestCase',
+            autoLoad: true,
+            remoteSort: false,
+            fetch:[
+        	    "FormattedID", 
+            	"Name",
+            	"Type",
+            	"WorkProduct",
+            	"Milestones",
+            	"Defects",
+            	"Results"
+        	],
+            limit: Infinity
+        });
+        
+        Ext.create('Rally.data.wsapi.Store', {
             model: 'TestCaseResult',
             autoLoad: true,
             remoteSort: false,
@@ -77,58 +93,47 @@ Ext.define('CustomApp', {
                 "c_VistABuild",
                 "c_VistAInstance"
             ],
-            limit: Infinity
-        });
-       
-        Ext.create('Rally.data.wsapi.Store', {
-            model: 'TestCase',
-            autoLoad: true,
-            remoteSort: false,
-            fetch:[
-        	    "FormattedID", 
-            	"Name",
-            	"Type",
-            	"WorkProduct",
-            	"Milestones",
-            	"Defects",
-            	"Results"
-        	],
             limit: Infinity,
             listeners: {
                 load: this._onDataLoaded,
-                scope:this
+                scope: this
             }
         });
     },
     _onDataLoaded: function(store, data) {
-        _.each(data, function(testcase) {
-            if (testcase.data.WorkProduct) {
-                var testCaseMilestones = [];
-                _.each(testcase.data.WorkProduct.Milestones._tagsNameArray, function(milestone) {
-                    testCaseMilestones.push(milestone.Name);
-                }, this);
-                var workProductMilestone = testCaseMilestones.join(', ');
-                testcase.set('WorkProductMilestone', workProductMilestone);
-                testcase.set('WorkProductNumericID', Number(testcase.data.WorkProduct.FormattedID.replace(/\D+/g, '')));
-            }
-            if (testcase.data.Defects && testcase.data.Defects.Count > 0) {
-                var defectHtml = [];
-                _.each(this._defectsStore.data.items, function(defect) {
-                    if (defect.data.TestCase.FormattedID === testcase.data.FormattedID) {
-                        defectHtml.push('<a href="' + Rally.nav.Manager.getDetailUrl(defect) + '">' + defect.data.FormattedID + "</a> - " + defect.data.State);
+        _.each(data, function(testresult) {
+            testresult.set("TesterName", testresult.data.Tester._refObjectName);
+            _.each(this._testCaseStore.data.items , function(testcase) {
+                if (testcase.data._ref === testresult.data.TestCase._ref) {
+                    testresult.set("FormattedID", testcase.data.FormattedID);
+                    testresult.set("TestCaseName", testcase.data.Name);
+                    testresult.set("TestCaseType", testcase.data.Type);
+                    testresult.set("TestCaseWorkProduct", testcase.data.WorkProduct);
+                    if (testcase.data.WorkProduct) {
+                        var testCaseMilestones = [];
+                        _.each(testcase.data.WorkProduct.Milestones._tagsNameArray, function(milestone) {
+                            testCaseMilestones.push(milestone.Name);
+                        }, this);
+                        var workProductMilestone = testCaseMilestones.join(', ');
+                        testresult.set('WorkProductMilestone', workProductMilestone);
+                        testresult.set('WorkProductNumericID', Number(testcase.data.WorkProduct.FormattedID.replace(/\D+/g, '')));
                     }
-                }, this);
-                testcase.set('OpenDefects', defectHtml.join("</br>"));
-            }
-            _.each(this._testResultsStore.data.items, function(testresult) {
-                console.log(testcase);
-                console.log(testresult);
+                    if (testcase.data.Defects && testcase.data.Defects.Count > 0) {
+                        var defectHtml = [];
+                        _.each(this._defectsStore.data.items, function(defect) {
+                            if (defect.data.TestCase.FormattedID === testcase.data.FormattedID) {
+                                defectHtml.push('<a href="' + Rally.nav.Manager.getDetailUrl(defect) + '">' + defect.data.FormattedID + "</a> - " + defect.data.State);
+                            }
+                        }, this);
+                        testresult.set('OpenDefects', defectHtml.join("</br>"));
+                    }
+                }
             }, this);
         }, this);
         this._makeGrid(data);
     },
     
-    _makeGrid:function(testcases){
+    _makeGrid: function(testcases){
         this._myMask.hide();
         var store = Ext.create('Rally.data.custom.Store', {
             data: testcases,
@@ -147,17 +152,31 @@ Ext.define('CustomApp', {
                 	text: "Test Case ID", dataIndex: "FormattedID", xtype: "templatecolumn",
                 	tpl: Ext.create("Rally.ui.renderer.template.FormattedIDTemplate"),
                 }, {
-                    text: "Test Case Name", dataIndex: "Name", flex: 1
+                    text: "Test Case Name", dataIndex: "TestCaseName", flex: 1
                 }, {
-                    text: "Test Case Type", dataIndex: "Type"
+                    text: "Test Case Type", dataIndex: "TestCaseType"
                 }, {
-                    text: "Work Product ID", dataIndex: "WorkProduct",
+                    text: "Work Product ID", dataIndex: "TestCaseWorkProduct",
                     renderer: function(value) {
                         return value ? '<a href="' + Rally.nav.Manager.getDetailUrl(value) + '">' + value.FormattedID + "</a>" : void 0;
                     },
                     getSortParam: function() {
                         return "WorkProductNumericID";  
                     }
+                }, {
+                    text: "Test Results Build", dataIndex: "Build"
+                }, {
+                    text: "Test Results Date", dataIndex: "Date"
+                }, {
+                    text: "Test Results Tester", dataIndex: "TesterName"
+                }, {
+                    text: "Test Results Verdict", dataIndex: "Verdict", sortable: false
+                }, {
+                    text: "Test Results Physical Environment", dataIndex: "c_PhysicalEnvironment"
+                }, {
+                    text: "Test Results VistA Build", dataIndex: "c_VistABuild"
+                }, {
+                    text: "Test Results VistA Instance", dataIndex: "c_VistAInstance"
                 }, {
                     text: "Defects", dataIndex: "OpenDefects"
                 }
@@ -193,11 +212,11 @@ Ext.define('CustomApp', {
                 if (fieldName ==="WorkProduct" && record.data.WorkProduct) {
                     data += this._getFieldTextAndEscape(record.data.WorkProduct.FormattedID) + ',';
                 } else if (fieldName ==="LastRun") {
-                    var text = '';
+                    var lastRunText = '';
                     if (record.data.LastRun) {
-                        text = record.data.LastRun.toString();
+                        lastRunText = record.data.LastRun.toString();
                     }
-                    data += this._getFieldTextAndEscape(text) + ',';
+                    data += this._getFieldTextAndEscape(lastRunText) + ',';
                 } else if (fieldName === "OpenDefects" && record.data.OpenDefects) {
                     var text = '\"';
                     _.each(this._defectsStore.data.items, function(defect) {
@@ -207,6 +226,10 @@ Ext.define('CustomApp', {
                     }, this);
                     text += '\"';
                     data += text + ',';
+                } else if (fieldName === "Date") {
+                     data += this._getFieldTextAndEscape(record.data.Date.toString()) + ',';
+                } else if (fieldName === "TestCaseWorkProduct" && record.data.TestCaseWorkProduct) {
+                     data += this._getFieldTextAndEscape(record.data.TestCaseWorkProduct.FormattedID) + ',';
                 } else {
                     data += this._getFieldTextAndEscape(record.get(fieldName)) + ',';
                 }
