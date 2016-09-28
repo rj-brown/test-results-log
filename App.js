@@ -62,43 +62,46 @@ Ext.define('CustomApp', {
         	],
             limit: Infinity
         });
-        
-        this._testCaseStore = Ext.create('Rally.data.wsapi.Store', {
-            model: 'TestCase',
-            autoLoad: true,
-            remoteSort: false,
-            fetch:[
-        	    "FormattedID", 
-            	"Name",
-            	"Type",
-            	"WorkProduct",
-            	"Milestones",
-            	"Defects",
-            	"Results"
-        	],
-            limit: Infinity
-        });
-        
-        Ext.create('Rally.data.wsapi.Store', {
-            model: 'TestCaseResult',
-            autoLoad: true,
-            remoteSort: false,
-            fetch: [
-                "Build",
-                "Date",
-                "TestCase",
-                "Tester",
-                "Verdict",
-                "c_PhysicalEnvironment",
-                "c_VistABuild",
-                "c_VistAInstance"
-            ],
-            limit: Infinity,
-            listeners: {
-                load: this._onDataLoaded,
-                scope: this
-            }
-        });
+        this._defectsStore.on('load',function (store) {
+            this._testCaseStore = Ext.create('Rally.data.wsapi.Store', {
+                model: 'TestCase',
+                autoLoad: true,
+                remoteSort: false,
+                fetch:[
+            	    "FormattedID", 
+                	"Name",
+                	"Type",
+                	"WorkProduct",
+                	"Milestones",
+                	"Defects",
+                	"Results"
+            	],
+                limit: Infinity
+            });
+            
+            this._testCaseStore.on('load',function (store) {
+                Ext.create('Rally.data.wsapi.Store', {
+                    model: 'TestCaseResult',
+                    autoLoad: true,
+                    remoteSort: false,
+                    fetch: [
+                        "Build",
+                        "Date",
+                        "TestCase",
+                        "Tester",
+                        "Verdict",
+                        "c_PhysicalEnvironment",
+                        "c_VistABuild",
+                        "c_VistAInstance"
+                    ],
+                    limit: Infinity,
+                    listeners: {
+                        load: this._onDataLoaded,
+                        scope: this
+                    }
+                });
+            },this);
+        },this);
     },
     _onDataLoaded: function(store, data) {
         _.each(data, function(testresult) {
