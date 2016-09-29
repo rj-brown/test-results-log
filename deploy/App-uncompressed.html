@@ -18,8 +18,8 @@
         },
         {
             xtype: 'container',
-            itemId: 'milestoneCombobox',
-            cls: 'milestone-combo-box'
+            itemId: 'environmentCombobox',
+            cls: 'environment-combo-box'
         },
         {
             xtype: 'container',
@@ -30,34 +30,31 @@
         this._myMask = new Ext.LoadMask(Ext.getBody(), {msg:"Loading data..."});
         this._myMask.show();
         
-        this.down('#milestoneCombobox').add({
-            xtype: 'rallymilestonecombobox',
-            itemId: 'stateComboBox',
-            allowNoEntry: true,
-            model: ['TestCase'],
+        this.down('#environmentCombobox').add({
+            xtype: 'rallyfieldvaluecombobox',
+            itemId: 'environmentComboBox',
+            model: 'TestCaseResult',
+            field: 'c_PhysicalEnvironment',
+            value: 'FIT',
             listeners: {
                 scope: this,
-                select: this._onSelect,
+                select: this._onEnvironmentSelect,
                 ready: this._initStore
             },
         });
    },
-    _getStateFilter: function() {
+    _getEnvironmentFilter: function() {
         return {
-            property: 'WorkProductMilestone',
+            property: 'Environment',
             operator: '=',
-            value: this.down('#stateComboBox').getRawValue()
+            value: this.down('#environmentComboBox').getRawValue()
         };
     },
-    _onSelect: function() {
+    _onEnvironmentSelect: function() {
         var store = this._grid.getStore();
     
         store.clearFilter(true);
-        if (this.down('#stateComboBox').getRawValue() !== "-- No Entry --") {
-            store.filter(this._getStateFilter());
-        } else {
-            store.reload();
-        }
+        store.filter(this._getEnvironmentFilter());
     },
    _initStore: function() {
         this._defectsStore = Ext.create('Rally.data.wsapi.Store', {
@@ -115,21 +112,14 @@
     _onDataLoaded: function(store, data) {
         _.each(data, function(testresult) {
             testresult.set("TesterName", testresult.data.Tester._refObjectName);
+            testresult.set("Environment", testresult.data.c_PhysicalEnvironment);
+            testresult.set("TestResultID", testresult.id);
             _.each(this._testCaseStore.data.items , function(testcase) {
                 if (testcase.data._ref === testresult.data.TestCase._ref) {
-                    testresult.set("FormattedID", testcase.data.FormattedID);
+                    testresult.set("TestCase", testcase);
                     testresult.set("TestCaseName", testcase.data.Name);
                     testresult.set("TestCaseType", testcase.data.Type);
                     testresult.set("TestCaseWorkProduct", testcase.data.WorkProduct);
-                    if (testcase.data.WorkProduct) {
-                        var testCaseMilestones = [];
-                        _.each(testcase.data.WorkProduct.Milestones._tagsNameArray, function(milestone) {
-                            testCaseMilestones.push(milestone.Name);
-                        }, this);
-                        var workProductMilestone = testCaseMilestones.join(', ');
-                        testresult.set('WorkProductMilestone', workProductMilestone);
-                        testresult.set('WorkProductNumericID', Number(testcase.data.WorkProduct.FormattedID.replace(/\D+/g, '')));
-                    }
                     if (testcase.data.Defects && testcase.data.Defects.Count > 0) {
                         var defectHtml = [];
                         _.each(this._defectsStore.data.items, function(defect) {
@@ -143,6 +133,7 @@
             }, this);
         }, this);
         this._makeGrid(data);
+        this._onEnvironmentSelect();
     },
     
     _makeGrid: function(testcases){
@@ -161,8 +152,10 @@
             showPagingToolbar: false,
             columnCfgs: [
                 { 
-                	text: "Test Case ID", dataIndex: "FormattedID", xtype: "templatecolumn",
-                	tpl: Ext.create("Rally.ui.renderer.template.FormattedIDTemplate"),
+                	text: "Test Case ID", dataIndex: "TestCase", 
+                	renderer : function(value) {
+                	    return value ? '<a href="' + Rally.nav.Manager.getDetailUrl(value) + '">' + value.data.FormattedID + "</a>" : void 0;
+                	}
                 }, {
                     text: "Test Case Name", dataIndex: "TestCaseName", flex: 1
                 }, {
@@ -175,6 +168,8 @@
                     getSortParam: function() {
                         return "WorkProductNumericID";  
                     }
+                }, {
+                    text: "Test Results ID", dataIndex: "TestResultID"
                 }, {
                     text: "Test Results Build", dataIndex: "Build"
                 }, {
@@ -215,7 +210,6 @@
         _.each(cols, function(col) {
             data += this._getFieldTextAndEscape(col.text) + ',';
         }, this);
-        data += "Milestones,";
         data += "\r\n";
 
         _.each(this._testcases, function(record) {
@@ -223,6 +217,8 @@
                 var fieldName = col.dataIndex;
                 if (fieldName ==="WorkProduct" && record.data.WorkProduct) {
                     data += this._getFieldTextAndEscape(record.data.WorkProduct.FormattedID) + ',';
+                } else if (fieldName === "TestCase") {
+                    data += this._getFieldTextAndEscape(record.data.TestCase.data.FormattedID) + ',';
                 } else if (fieldName ==="LastRun") {
                     var lastRunText = '';
                     if (record.data.LastRun) {
@@ -232,7 +228,7 @@
                 } else if (fieldName === "OpenDefects" && record.data.OpenDefects) {
                     var text = '\"';
                     _.each(this._defectsStore.data.items, function(defect) {
-                        if (defect.data.TestCase && defect.data.TestCase.FormattedID === record.data.FormattedID) {
+                        if (defect.data.TestCase && defect.data.TestCase.FormattedID === record.data.TestCase.data.FormattedID) {
                             text += defect.data.FormattedID + ' - ' + defect.data.State + '\n';
                         }
                     }, this);
@@ -246,20 +242,10 @@
                     data += this._getFieldTextAndEscape(record.get(fieldName)) + ',';
                 }
             }, this);
-            data += this._getMilestonesForCSV(record);
             data += "\r\n";
         }, this);
 
         return data;
-    },
-    _getMilestonesForCSV: function(testcases) {
-        var milestones = '';
-        if(testcases.data.WorkProduct) {
-            _.each(testcases.data.WorkProduct.Milestones._tagsNameArray, function(milestone) {
-                milestones += this._getFieldTextAndEscape(milestone.Name) + ' ';
-            }, this);
-        }
-        return milestones;
     },
     _getFieldTextAndEscape: function(fieldData) {
         var string  = this._getFieldText(fieldData);  
@@ -307,7 +293,7 @@
   float: left;
   width: 100px;
 }
-.milestone-combo-box {
+.environment-combo-box {
   display: inline;
   float: left;
   width: 160px;

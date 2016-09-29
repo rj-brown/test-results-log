@@ -123,7 +123,6 @@ Ext.define('CustomApp', {
                 }
             }, this);
         }, this);
-        console.log(data);
         this._makeGrid(data);
         this._onEnvironmentSelect();
     },
