@@ -29,23 +29,23 @@ Ext.define('CustomApp', {
             value: 'FIT',
             listeners: {
                 scope: this,
-                select: this._onSelect,
+                select: this._onEnvironmentSelect,
                 ready: this._initStore
             },
         });
    },
-    _getStateFilter: function() {
+    _getEnvironmentFilter: function() {
         return {
             property: 'Environment',
             operator: '=',
             value: this.down('#environmentComboBox').getRawValue()
         };
     },
-    _onSelect: function() {
+    _onEnvironmentSelect: function() {
         var store = this._grid.getStore();
     
         store.clearFilter(true);
-        store.filter(this._getStateFilter());
+        store.filter(this._getEnvironmentFilter());
     },
    _initStore: function() {
         this._defectsStore = Ext.create('Rally.data.wsapi.Store', {
@@ -106,7 +106,7 @@ Ext.define('CustomApp', {
             testresult.set("Environment", testresult.data.c_PhysicalEnvironment);
             _.each(this._testCaseStore.data.items , function(testcase) {
                 if (testcase.data._ref === testresult.data.TestCase._ref) {
-                    testresult.set("FormattedID", testcase.data.FormattedID);
+                    testresult.set("TestCase", testcase);
                     testresult.set("TestCaseName", testcase.data.Name);
                     testresult.set("TestCaseType", testcase.data.Type);
                     testresult.set("TestCaseWorkProduct", testcase.data.WorkProduct);
@@ -122,9 +122,8 @@ Ext.define('CustomApp', {
                 }
             }, this);
         }, this);
-        
         this._makeGrid(data);
-        this._onSelect();
+        this._onEnvironmentSelect();
     },
     
     _makeGrid: function(testcases){
@@ -143,8 +142,10 @@ Ext.define('CustomApp', {
             showPagingToolbar: false,
             columnCfgs: [
                 { 
-                	text: "Test Case ID", dataIndex: "FormattedID", xtype: "templatecolumn",
-                	tpl: Ext.create("Rally.ui.renderer.template.FormattedIDTemplate"),
+                	text: "Test Case ID", dataIndex: "TestCase", 
+                	renderer : function(value) {
+                	    return value ? '<a href="' + Rally.nav.Manager.getDetailUrl(value) + '">' + value.data.FormattedID + "</a>" : void 0;
+                	}
                 }, {
                     text: "Test Case Name", dataIndex: "TestCaseName", flex: 1
                 }, {
