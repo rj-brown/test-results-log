@@ -22,10 +22,11 @@ Ext.define('CustomApp', {
         this._myMask.show();
         
         this.down('#environmentCombobox').add({
-            xtype: 'rallyattributecombobox',
+            xtype: 'rallyfieldvaluecombobox',
             itemId: 'environmentComboBox',
-            allowNoEntry: true,
-            model: ['TestCaseResult'],
+            model: 'TestCaseResult',
+            field: 'c_PhysicalEnvironment',
+            value: 'FIT',
             listeners: {
                 scope: this,
                 select: this._onSelect,
@@ -35,7 +36,7 @@ Ext.define('CustomApp', {
    },
     _getStateFilter: function() {
         return {
-            property: 'PhysicalEnvironment',
+            property: 'Environment',
             operator: '=',
             value: this.down('#environmentComboBox').getRawValue()
         };
@@ -44,11 +45,7 @@ Ext.define('CustomApp', {
         var store = this._grid.getStore();
     
         store.clearFilter(true);
-        if (this.down('#environmentComboBox').getRawValue() !== "-- No Entry --") {
-            store.filter(this._getStateFilter());
-        } else {
-            store.reload();
-        }
+        store.filter(this._getStateFilter());
     },
    _initStore: function() {
         this._defectsStore = Ext.create('Rally.data.wsapi.Store', {
@@ -106,13 +103,13 @@ Ext.define('CustomApp', {
     _onDataLoaded: function(store, data) {
         _.each(data, function(testresult) {
             testresult.set("TesterName", testresult.data.Tester._refObjectName);
+            testresult.set("Environment", testresult.data.c_PhysicalEnvironment);
             _.each(this._testCaseStore.data.items , function(testcase) {
                 if (testcase.data._ref === testresult.data.TestCase._ref) {
                     testresult.set("FormattedID", testcase.data.FormattedID);
                     testresult.set("TestCaseName", testcase.data.Name);
                     testresult.set("TestCaseType", testcase.data.Type);
                     testresult.set("TestCaseWorkProduct", testcase.data.WorkProduct);
-                    testresult.set("PhysicalEnvironment", testresult.data.c_PhysicalEnvironment);
                     if (testcase.data.Defects && testcase.data.Defects.Count > 0) {
                         var defectHtml = [];
                         _.each(this._defectsStore.data.items, function(defect) {
@@ -125,7 +122,9 @@ Ext.define('CustomApp', {
                 }
             }, this);
         }, this);
+        
         this._makeGrid(data);
+        this._onSelect();
     },
     
     _makeGrid: function(testcases){
