@@ -104,6 +104,7 @@ Ext.define('CustomApp', {
         _.each(data, function(testresult) {
             testresult.set("TesterName", testresult.data.Tester._refObjectName);
             testresult.set("Environment", testresult.data.c_PhysicalEnvironment);
+            testresult.set("TestResultID", testresult.id);
             _.each(this._testCaseStore.data.items , function(testcase) {
                 if (testcase.data._ref === testresult.data.TestCase._ref) {
                     testresult.set("TestCase", testcase);
@@ -122,6 +123,7 @@ Ext.define('CustomApp', {
                 }
             }, this);
         }, this);
+        console.log(data);
         this._makeGrid(data);
         this._onEnvironmentSelect();
     },
@@ -158,6 +160,8 @@ Ext.define('CustomApp', {
                     getSortParam: function() {
                         return "WorkProductNumericID";  
                     }
+                }, {
+                    text: "Test Results ID", dataIndex: "TestResultID"
                 }, {
                     text: "Test Results Build", dataIndex: "Build"
                 }, {
@@ -198,7 +202,6 @@ Ext.define('CustomApp', {
         _.each(cols, function(col) {
             data += this._getFieldTextAndEscape(col.text) + ',';
         }, this);
-        data += "Milestones,";
         data += "\r\n";
 
         _.each(this._testcases, function(record) {
@@ -206,6 +209,8 @@ Ext.define('CustomApp', {
                 var fieldName = col.dataIndex;
                 if (fieldName ==="WorkProduct" && record.data.WorkProduct) {
                     data += this._getFieldTextAndEscape(record.data.WorkProduct.FormattedID) + ',';
+                } else if (fieldName === "TestCase") {
+                    data += this._getFieldTextAndEscape(record.data.TestCase.data.FormattedID) + ',';
                 } else if (fieldName ==="LastRun") {
                     var lastRunText = '';
                     if (record.data.LastRun) {
@@ -215,7 +220,7 @@ Ext.define('CustomApp', {
                 } else if (fieldName === "OpenDefects" && record.data.OpenDefects) {
                     var text = '\"';
                     _.each(this._defectsStore.data.items, function(defect) {
-                        if (defect.data.TestCase && defect.data.TestCase.FormattedID === record.data.FormattedID) {
+                        if (defect.data.TestCase && defect.data.TestCase.FormattedID === record.data.TestCase.data.FormattedID) {
                             text += defect.data.FormattedID + ' - ' + defect.data.State + '\n';
                         }
                     }, this);
@@ -229,20 +234,10 @@ Ext.define('CustomApp', {
                     data += this._getFieldTextAndEscape(record.get(fieldName)) + ',';
                 }
             }, this);
-            data += this._getMilestonesForCSV(record);
             data += "\r\n";
         }, this);
 
         return data;
-    },
-    _getMilestonesForCSV: function(testcases) {
-        var milestones = '';
-        if(testcases.data.WorkProduct) {
-            _.each(testcases.data.WorkProduct.Milestones._tagsNameArray, function(milestone) {
-                milestones += this._getFieldTextAndEscape(milestone.Name) + ' ';
-            }, this);
-        }
-        return milestones;
     },
     _getFieldTextAndEscape: function(fieldData) {
         var string  = this._getFieldText(fieldData);  
