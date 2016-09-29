@@ -71,43 +71,46 @@
         	],
             limit: Infinity
         });
-        
-        this._testCaseStore = Ext.create('Rally.data.wsapi.Store', {
-            model: 'TestCase',
-            autoLoad: true,
-            remoteSort: false,
-            fetch:[
-        	    "FormattedID", 
-            	"Name",
-            	"Type",
-            	"WorkProduct",
-            	"Milestones",
-            	"Defects",
-            	"Results"
-        	],
-            limit: Infinity
-        });
-        
-        Ext.create('Rally.data.wsapi.Store', {
-            model: 'TestCaseResult',
-            autoLoad: true,
-            remoteSort: false,
-            fetch: [
-                "Build",
-                "Date",
-                "TestCase",
-                "Tester",
-                "Verdict",
-                "c_PhysicalEnvironment",
-                "c_VistABuild",
-                "c_VistAInstance"
-            ],
-            limit: Infinity,
-            listeners: {
-                load: this._onDataLoaded,
-                scope: this
-            }
-        });
+        this._defectsStore.on('load',function () {
+            this._testCaseStore = Ext.create('Rally.data.wsapi.Store', {
+                model: 'TestCase',
+                autoLoad: true,
+                remoteSort: false,
+                fetch:[
+            	    "FormattedID", 
+                	"Name",
+                	"Type",
+                	"WorkProduct",
+                	"Milestones",
+                	"Defects",
+                	"Results"
+            	],
+                limit: Infinity
+            });
+            
+            this._testCaseStore.on('load',function () {
+                Ext.create('Rally.data.wsapi.Store', {
+                    model: 'TestCaseResult',
+                    autoLoad: true,
+                    remoteSort: false,
+                    fetch: [
+                        "Build",
+                        "Date",
+                        "TestCase",
+                        "Tester",
+                        "Verdict",
+                        "c_PhysicalEnvironment",
+                        "c_VistABuild",
+                        "c_VistAInstance"
+                    ],
+                    limit: Infinity,
+                    listeners: {
+                        load: this._onDataLoaded,
+                        scope: this
+                    }
+                });
+            },this);
+        },this);
     },
     _onDataLoaded: function(store, data) {
         _.each(data, function(testresult) {
@@ -130,7 +133,7 @@
                     if (testcase.data.Defects && testcase.data.Defects.Count > 0) {
                         var defectHtml = [];
                         _.each(this._defectsStore.data.items, function(defect) {
-                            if (defect.data.TestCase.FormattedID === testcase.data.FormattedID) {
+                            if (defect.data.TestCase && defect.data.TestCase.FormattedID === testcase.data.FormattedID) {
                                 defectHtml.push('<a href="' + Rally.nav.Manager.getDetailUrl(defect) + '">' + defect.data.FormattedID + "</a> - " + defect.data.State);
                             }
                         }, this);
@@ -229,7 +232,7 @@
                 } else if (fieldName === "OpenDefects" && record.data.OpenDefects) {
                     var text = '\"';
                     _.each(this._defectsStore.data.items, function(defect) {
-                        if (defect.data.TestCase.FormattedID === record.data.FormattedID) {
+                        if (defect.data.TestCase && defect.data.TestCase.FormattedID === record.data.FormattedID) {
                             text += defect.data.FormattedID + ' - ' + defect.data.State + '\n';
                         }
                     }, this);
@@ -308,6 +311,12 @@
   display: inline;
   float: left;
   width: 160px;
+}
+.x-panel-body {
+  height: auto !important;
+}
+.x-panel-default {
+  height: auto !important;
 }
 
     </style>

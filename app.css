@@ -11,3 +11,9 @@
     float: left;
     width: 160px;
 }
+.x-panel-body {
+    height: auto !important;
+}
+.x-panel-default {
+    height: auto !important;
+}

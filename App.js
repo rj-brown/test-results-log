@@ -9,8 +9,8 @@ Ext.define('CustomApp', {
         },
         {
             xtype: 'container',
-            itemId: 'milestoneCombobox',
-            cls: 'milestone-combo-box'
+            itemId: 'environmentCombobox',
+            cls: 'environment-combo-box'
         },
         {
             xtype: 'container',
@@ -21,11 +21,11 @@ Ext.define('CustomApp', {
         this._myMask = new Ext.LoadMask(Ext.getBody(), {msg:"Loading data..."});
         this._myMask.show();
         
-        this.down('#milestoneCombobox').add({
-            xtype: 'rallymilestonecombobox',
-            itemId: 'stateComboBox',
+        this.down('#environmentCombobox').add({
+            xtype: 'rallyattributecombobox',
+            itemId: 'environmentComboBox',
             allowNoEntry: true,
-            model: ['TestCase'],
+            model: ['TestCaseResult'],
             listeners: {
                 scope: this,
                 select: this._onSelect,
@@ -35,16 +35,16 @@ Ext.define('CustomApp', {
    },
     _getStateFilter: function() {
         return {
-            property: 'WorkProductMilestone',
+            property: 'PhysicalEnvironment',
             operator: '=',
-            value: this.down('#stateComboBox').getRawValue()
+            value: this.down('#environmentComboBox').getRawValue()
         };
     },
     _onSelect: function() {
         var store = this._grid.getStore();
     
         store.clearFilter(true);
-        if (this.down('#stateComboBox').getRawValue() !== "-- No Entry --") {
+        if (this.down('#environmentComboBox').getRawValue() !== "-- No Entry --") {
             store.filter(this._getStateFilter());
         } else {
             store.reload();
@@ -62,7 +62,7 @@ Ext.define('CustomApp', {
         	],
             limit: Infinity
         });
-        this._defectsStore.on('load',function (store) {
+        this._defectsStore.on('load',function () {
             this._testCaseStore = Ext.create('Rally.data.wsapi.Store', {
                 model: 'TestCase',
                 autoLoad: true,
@@ -79,7 +79,7 @@ Ext.define('CustomApp', {
                 limit: Infinity
             });
             
-            this._testCaseStore.on('load',function (store) {
+            this._testCaseStore.on('load',function () {
                 Ext.create('Rally.data.wsapi.Store', {
                     model: 'TestCaseResult',
                     autoLoad: true,
@@ -112,19 +112,11 @@ Ext.define('CustomApp', {
                     testresult.set("TestCaseName", testcase.data.Name);
                     testresult.set("TestCaseType", testcase.data.Type);
                     testresult.set("TestCaseWorkProduct", testcase.data.WorkProduct);
-                    if (testcase.data.WorkProduct) {
-                        var testCaseMilestones = [];
-                        _.each(testcase.data.WorkProduct.Milestones._tagsNameArray, function(milestone) {
-                            testCaseMilestones.push(milestone.Name);
-                        }, this);
-                        var workProductMilestone = testCaseMilestones.join(', ');
-                        testresult.set('WorkProductMilestone', workProductMilestone);
-                        testresult.set('WorkProductNumericID', Number(testcase.data.WorkProduct.FormattedID.replace(/\D+/g, '')));
-                    }
+                    testresult.set("PhysicalEnvironment", testresult.data.c_PhysicalEnvironment);
                     if (testcase.data.Defects && testcase.data.Defects.Count > 0) {
                         var defectHtml = [];
                         _.each(this._defectsStore.data.items, function(defect) {
-                            if (defect.data.TestCase.FormattedID === testcase.data.FormattedID) {
+                            if (defect.data.TestCase && defect.data.TestCase.FormattedID === testcase.data.FormattedID) {
                                 defectHtml.push('<a href="' + Rally.nav.Manager.getDetailUrl(defect) + '">' + defect.data.FormattedID + "</a> - " + defect.data.State);
                             }
                         }, this);
@@ -223,7 +215,7 @@ Ext.define('CustomApp', {
                 } else if (fieldName === "OpenDefects" && record.data.OpenDefects) {
                     var text = '\"';
                     _.each(this._defectsStore.data.items, function(defect) {
-                        if (defect.data.TestCase.FormattedID === record.data.FormattedID) {
+                        if (defect.data.TestCase && defect.data.TestCase.FormattedID === record.data.FormattedID) {
                             text += defect.data.FormattedID + ' - ' + defect.data.State + '\n';
                         }
                     }, this);
