@@ -117,17 +117,30 @@
             _.each(this._testCaseStore.data.items , function(testcase) {
                 if (testcase.data._ref === testresult.data.TestCase._ref) {
                     testresult.set("TestCase", testcase);
+                    testresult.set("TestCaseNumericID", Number(testcase.data.FormattedID.replace(/\D+/g, '')));
                     testresult.set("TestCaseName", testcase.data.Name);
                     testresult.set("TestCaseType", testcase.data.Type);
                     testresult.set("TestCaseWorkProduct", testcase.data.WorkProduct);
+                    if (testcase.data.WorkProduct) {
+                        testresult.set("TestCaseWorkProductNumericID", Number(testcase.data.WorkProduct.FormattedID.replace(/\D+/g, '')));
+                    }
                     if (testcase.data.Defects && testcase.data.Defects.Count > 0) {
-                        var defectHtml = [];
+                        var allDefectHtml = [],
+                            openDefectHtml = [];
                         _.each(this._defectsStore.data.items, function(defect) {
                             if (defect.data.TestCase && defect.data.TestCase.FormattedID === testcase.data.FormattedID) {
-                                defectHtml.push('<a href="' + Rally.nav.Manager.getDetailUrl(defect) + '">' + defect.data.FormattedID + "</a> - " + defect.data.State);
+                                allDefectHtml.push('<a href="' + Rally.nav.Manager.getDetailUrl(defect) + '">' + defect.data.FormattedID + "</a> - " + defect.data.State);
+                                if (defect.data.State !== "Closed" && 
+                                    defect.data.State !== "VA-Awaiting Closure" &&
+                                    defect.data.State !== "Awaiting Information from VA" &&
+                                    defect.data.State !== "Awaiting CCB Decision" &&
+                                    defect.data.State !== "Deferred") {
+                                    openDefectHtml.push('<a href="' + Rally.nav.Manager.getDetailUrl(defect) + '">' + defect.data.FormattedID + "</a>");
+                                }
                             }
                         }, this);
-                        testresult.set('OpenDefects', defectHtml.join("</br>"));
+                        testresult.set('AllDefects', allDefectHtml.join("</br>"));
+                        testresult.set('OpenDefects', openDefectHtml.join("</br>"));
                     }
                 }
             }, this);
@@ -155,7 +168,10 @@
                 	text: "Test Case ID", dataIndex: "TestCase", 
                 	renderer : function(value) {
                 	    return value ? '<a href="' + Rally.nav.Manager.getDetailUrl(value) + '">' + value.data.FormattedID + "</a>" : void 0;
-                	}
+                	},
+                	 getSortParam: function() {
+                        return 'TestCaseNumericID';  
+                    }
                 }, {
                     text: "Test Case Name", dataIndex: "TestCaseName", flex: 1
                 }, {
@@ -166,7 +182,7 @@
                         return value ? '<a href="' + Rally.nav.Manager.getDetailUrl(value) + '">' + value.FormattedID + "</a>" : void 0;
                     },
                     getSortParam: function() {
-                        return "WorkProductNumericID";  
+                        return "TestCaseWorkProductNumericID";  
                     }
                 }, {
                     text: "Test Results ID", dataIndex: "TestResultID"
@@ -185,7 +201,9 @@
                 }, {
                     text: "Test Results VistA Instance", dataIndex: "c_VistAInstance"
                 }, {
-                    text: "Defects", dataIndex: "OpenDefects"
+                    text: "Defects", dataIndex: "AllDefects"
+                }, {
+                    text: "Open Defects", dataIndex: "OpenDefects"
                 }
             ]
         });
@@ -225,7 +243,7 @@
                         lastRunText = record.data.LastRun.toString();
                     }
                     data += this._getFieldTextAndEscape(lastRunText) + ',';
-                } else if (fieldName === "OpenDefects" && record.data.OpenDefects) {
+                } else if (fieldName === "AllDefects" && record.data.AllDefects) {
                     var text = '\"';
                     _.each(this._defectsStore.data.items, function(defect) {
                         if (defect.data.TestCase && defect.data.TestCase.FormattedID === record.data.TestCase.data.FormattedID) {
@@ -234,6 +252,21 @@
                     }, this);
                     text += '\"';
                     data += text + ',';
+                } else if (fieldName === "OpenDefects" && record.data.OpenDefects) {
+                    var openDefectText = '\"';
+                    _.each(this._defectsStore.data.items, function(defect) {
+                        if (defect.data.TestCase && defect.data.TestCase.FormattedID === record.data.TestCase.data.FormattedID) {
+                            if (defect.data.State !== "Closed" && 
+                                    defect.data.State !== "VA-Awaiting Closure" &&
+                                    defect.data.State !== "Awaiting Information from VA" &&
+                                    defect.data.State !== "Awaiting CCB Decision" &&
+                                    defect.data.State !== "Deferred") {
+                                openDefectText += defect.data.FormattedID + '\n';
+                                    }
+                        }
+                    }, this);
+                    openDefectText += '\"';
+                    data += openDefectText + ',';
                 } else if (fieldName === "Date") {
                      data += this._getFieldTextAndEscape(record.data.Date.toString()) + ',';
                 } else if (fieldName === "TestCaseWorkProduct" && record.data.TestCaseWorkProduct) {
