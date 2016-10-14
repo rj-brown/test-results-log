@@ -104,7 +104,6 @@ Ext.define('CustomApp', {
         _.each(data, function(testresult) {
             testresult.set("TesterName", testresult.data.Tester._refObjectName);
             testresult.set("Environment", testresult.data.c_PhysicalEnvironment);
-            testresult.set("TestResultID", testresult.id);
             _.each(this._testCaseStore.data.items , function(testcase) {
                 if (testcase.data._ref === testresult.data.TestCase._ref) {
                     testresult.set("TestCase", testcase);
@@ -158,7 +157,7 @@ Ext.define('CustomApp', {
                 { 
                 	text: "Test Case ID", dataIndex: "TestCase", 
                 	renderer : function(value) {
-                	    return value ? '<a href="' + Rally.nav.Manager.getDetailUrl(value) + '">' + value.data.FormattedID + "</a>" : void 0;
+                	    return value ? '<a href="' + Rally.nav.Manager.getDetailUrl(value) + '" target="_blank">' + value.data.FormattedID + "</a>" : void 0;
                 	},
                 	 getSortParam: function() {
                         return 'TestCaseNumericID';  
@@ -170,17 +169,15 @@ Ext.define('CustomApp', {
                 }, {
                     text: "Work Product ID", dataIndex: "TestCaseWorkProduct",
                     renderer: function(value) {
-                        return value ? '<a href="' + Rally.nav.Manager.getDetailUrl(value) + '">' + value.FormattedID + "</a>" : void 0;
+                        return value ? '<a href="' + Rally.nav.Manager.getDetailUrl(value) + '" target="_blank">' + value.FormattedID + "</a>" : void 0;
                     },
                     getSortParam: function() {
                         return "TestCaseWorkProductNumericID";  
                     }
                 }, {
-                    text: "Test Results ID", dataIndex: "TestResultID"
-                }, {
                     text: "Test Results Build", dataIndex: "Build"
                 }, {
-                    text: "Test Results Date", dataIndex: "Date"
+                    text: "Test Results Date", dataIndex: "Date", xtype: 'datecolumn', format: 'D n/j/Y'
                 }, {
                     text: "Test Results Tester", dataIndex: "TesterName"
                 }, {
