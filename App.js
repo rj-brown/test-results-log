@@ -119,13 +119,13 @@ Ext.define('CustomApp', {
                             openDefectHtml = [];
                         _.each(this._defectsStore.data.items, function(defect) {
                             if (defect.data.TestCase && defect.data.TestCase.FormattedID === testcase.data.FormattedID) {
-                                allDefectHtml.push('<a href="' + Rally.nav.Manager.getDetailUrl(defect) + '">' + defect.data.FormattedID + "</a> - " + defect.data.State);
+                                allDefectHtml.push('<a href="' + Rally.nav.Manager.getDetailUrl(defect) + '" target="_blank">' + defect.data.FormattedID + "</a> - " + defect.data.State);
                                 if (defect.data.State !== "Closed" && 
                                     defect.data.State !== "VA-Awaiting Closure" &&
                                     defect.data.State !== "Awaiting Information from VA" &&
                                     defect.data.State !== "Awaiting CCB Decision" &&
                                     defect.data.State !== "Deferred") {
-                                    openDefectHtml.push('<a href="' + Rally.nav.Manager.getDetailUrl(defect) + '">' + defect.data.FormattedID + "</a>");
+                                    openDefectHtml.push('<a href="' + Rally.nav.Manager.getDetailUrl(defect) + '" target="_blank">' + defect.data.FormattedID + "</a>");
                                 }
                             }
                         }, this);
