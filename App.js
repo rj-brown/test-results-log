@@ -9,6 +9,16 @@ Ext.define('CustomApp', {
         },
         {
             xtype: 'container',
+            itemId: 'buildCombobox',
+            cls: 'build-combo-box'
+        },
+        {
+            xtype: 'container',
+            itemId: 'vistaBuildCombobox',
+            cls: 'vista-build-combo-box'
+        },
+        {
+            xtype: 'container',
             itemId: 'environmentCombobox',
             cls: 'environment-combo-box'
         },
@@ -20,6 +30,30 @@ Ext.define('CustomApp', {
     launch: function() {
         this._myMask = new Ext.LoadMask(Ext.getBody(), {msg:"Loading data..."});
         this._myMask.show();
+        
+        Ext.define('MyRally.util.Filter',{
+            override : 'Ext.util.Filter',
+            statics:{
+                createFilterFn: function(filters) {
+                    return filters && filters.length ? function(candidate) {
+                        var isMatch = true,
+                            length = filters.length,
+                            i, filter;
+                            
+                        for (i = 0; isMatch && i < length; i++) {
+                            filter = filters[i];
+                            
+                            if (!filter.disabled && filter.filterFn) {
+                                isMatch = isMatch && filter.filterFn.call(filter.scope || filter, candidate);
+                            }
+                        }
+                        return isMatch;
+                    } : function() {
+                        return true;
+                    };
+                }
+            }
+        });
         
         this.down('#environmentCombobox').add({
             xtype: 'rallyfieldvaluecombobox',
@@ -33,7 +67,7 @@ Ext.define('CustomApp', {
                 ready: this._initStore
             },
         });
-   },
+    },
     _getEnvironmentFilter: function() {
         return {
             property: 'Environment',
@@ -43,7 +77,7 @@ Ext.define('CustomApp', {
     },
     _onEnvironmentSelect: function() {
         var store = this._grid.getStore();
-    
+
         store.clearFilter(true);
         store.filter(this._getEnvironmentFilter());
     },
@@ -75,7 +109,7 @@ Ext.define('CustomApp', {
             	],
                 limit: Infinity
             });
-            
+
             this._testCaseStore.on('load',function () {
                 Ext.create('Rally.data.wsapi.Store', {
                     model: 'TestCaseResult',
@@ -138,11 +172,12 @@ Ext.define('CustomApp', {
         this._makeGrid(data);
         this._onEnvironmentSelect();
     },
-    
+
     _makeGrid: function(testcases){
         this._myMask.hide();
         var store = Ext.create('Rally.data.custom.Store', {
             data: testcases,
+            storeId: 'customStore',
             proxy: {
                 type:'memory'
             }
@@ -195,24 +230,90 @@ Ext.define('CustomApp', {
                 }
             ]
         });
+        var thisRef = this;
+
+        this.down('#buildCombobox').add({
+            store: store,
+            xtype: 'rallysearchcombobox',
+            itemId: 'buildCombobox',
+            model: 'TestCaseResult',
+            valueField: 'Build',
+            hideTrigger: true,
+            noEntryText: 'All Builds',
+            emptyText: 'Filter By Build',
+            autoSelect: false,
+            submitEmptyText: false,
+            forceSelection: false,
+            listeners: {
+                'keyup': function(self, event) {
+                    if(event.keyCode === 13) {
+                        if (this.getRawValue() && this.getRawValue() !== "" && this.getRawValue() !== "All Builds") {
+                            this.store.clearFilter(true);
+                            if (thisRef.down('#vistaBuildCombobox').items.items[0].getRawValue() !== "All VistA Builds") {
+                                this.store.filter([thisRef._getBuildFilter(), thisRef._getVistaBuildFilter(), thisRef._getEnvironmentFilter()]);
+                            } else {
+                                this.store.filter([thisRef._getBuildFilter(), thisRef._getEnvironmentFilter()]);
+                            }
+                        } else {
+                            this.store.clearFilter(true);
+                        }
+                    }
+                },
+            },
+        });
+        
+        this.down('#vistaBuildCombobox').add({
+            store: store,
+            xtype: 'rallysearchcombobox',
+            itemId: 'vistaBuildCombobox',
+            model: 'TestCaseResult',
+            valueField: 'c_VistABuild',
+            hideTrigger: true,
+            noEntryText: 'All VistA Builds',
+            emptyText: 'Filter By VistA Build',
+            autoSelect: false,
+            submitEmptyText: false,
+            forceSelection: false,
+            listeners: {
+                'keyup': function(self, event) {
+                    if(event.keyCode === 13) {
+                        if (this.getRawValue() && this.getRawValue() !== "" && this.getRawValue() !== "All VistA Builds") {
+                            this.store.clearFilter(true);
+                            this.store.filter([thisRef._getVistaBuildFilter(), thisRef._getEnvironmentFilter()]);
+                        } else {
+                            this.store.clearFilter(true);
+                        }
+                    }
+                },
+            },
+        });
+
         this.down('#gridContainer').add(this._grid);
         this.down('#exportBtn').add({
             xtype: 'rallybutton',
             text: 'Export to CSV',
-            handler: this._onClickExport,
+            href: 'data:text/csv;charset=utf8,' + encodeURIComponent(this._getCSV()),
+            id: 'exportButton',
             scope: this
         });
+        document.getElementById("exportButton").setAttribute("download","export.csv");
     },
-
-    _onClickExport: function(){
-        var data = this._getCSV();
-        window.location = 'data:text/csv;charset=utf8,' + encodeURIComponent(data);
+    _getBuildFilter: function() {
+        return {
+            property: 'Build',
+            value: this.down('#buildCombobox').items.items[0].getRawValue()
+        };
     },
-    
+    _getVistaBuildFilter: function() {
+        return {
+            property: 'c_VistABuild',
+            value: this.down('#vistaBuildCombobox').items.items[0].getRawValue()
+        };
+    },
     _getCSV: function () {
         var cols    = this._grid.columns;
         var data = '';
-        
+
         _.each(cols, function(col) {
             data += this._getFieldTextAndEscape(col.text) + ',';
         }, this);
@@ -250,7 +351,7 @@ Ext.define('CustomApp', {
                                     defect.data.State !== "Awaiting CCB Decision" &&
                                     defect.data.State !== "Deferred") {
                                 openDefectText += defect.data.FormattedID + '\n';
-                                    }
+                            }
                         }
                     }, this);
                     openDefectText += '\"';

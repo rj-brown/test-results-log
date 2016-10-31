@@ -17,3 +17,10 @@
 .x-panel-default {
     height: auto !important;
 }
+
+.rui-triggerfield .x-form-field {
+    border-right-width: 1px;
+}
+.rui-triggerfield:hover .x-form-field {
+    border-right-width: 1px;
+}
