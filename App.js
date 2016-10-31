@@ -239,11 +239,15 @@ Ext.define('CustomApp', {
             model: 'TestCaseResult',
             valueField: 'Build',
             hideTrigger: true,
-            noEntryText: 'All Builds',
+            noEntryText: '',
             emptyText: 'Filter By Build',
             autoSelect: false,
             submitEmptyText: false,
             forceSelection: false,
+            clearFilterOnBlur: false,
+            anyMatch: true,
+            queryMode: 'local',
+            submitValue: false,
             listeners: {
                 'keyup': function(self, event) {
                     if(event.keyCode === 13) {
@@ -269,11 +273,15 @@ Ext.define('CustomApp', {
             model: 'TestCaseResult',
             valueField: 'c_VistABuild',
             hideTrigger: true,
-            noEntryText: 'All VistA Builds',
+            noEntryText: '',
             emptyText: 'Filter By VistA Build',
             autoSelect: false,
             submitEmptyText: false,
             forceSelection: false,
+            clearFilterOnBlur: false,
+            anyMatch: true,
+            queryMode: 'local',
+            submitValue: false,
             listeners: {
                 'keyup': function(self, event) {
                     if(event.keyCode === 13) {

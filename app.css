@@ -3,8 +3,18 @@
 }
 .export-button {
     display: inline;
-    float: left;
+    float: right;
     width: 100px;
+}
+.build-combo-box {
+    display: inline;
+    float: left;
+    width: 160px;
+}
+.vista-build-combo-box {
+    display: inline;
+    float: left;
+    width: 160px;
 }
 .environment-combo-box {
     display: inline;

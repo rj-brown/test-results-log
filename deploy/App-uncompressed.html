@@ -248,11 +248,15 @@
             model: 'TestCaseResult',
             valueField: 'Build',
             hideTrigger: true,
-            noEntryText: 'All Builds',
+            noEntryText: '',
             emptyText: 'Filter By Build',
             autoSelect: false,
             submitEmptyText: false,
             forceSelection: false,
+            clearFilterOnBlur: false,
+            anyMatch: true,
+            queryMode: 'local',
+            submitValue: false,
             listeners: {
                 'keyup': function(self, event) {
                     if(event.keyCode === 13) {
@@ -278,11 +282,15 @@
             model: 'TestCaseResult',
             valueField: 'c_VistABuild',
             hideTrigger: true,
-            noEntryText: 'All VistA Builds',
+            noEntryText: '',
             emptyText: 'Filter By VistA Build',
             autoSelect: false,
             submitEmptyText: false,
             forceSelection: false,
+            clearFilterOnBlur: false,
+            anyMatch: true,
+            queryMode: 'local',
+            submitValue: false,
             listeners: {
                 'keyup': function(self, event) {
                     if(event.keyCode === 13) {
@@ -421,8 +429,18 @@
 }
 .export-button {
   display: inline;
-  float: left;
+  float: right;
   width: 100px;
+}
+.build-combo-box {
+  display: inline;
+  float: left;
+  width: 160px;
+}
+.vista-build-combo-box {
+  display: inline;
+  float: left;
+  width: 160px;
 }
 .environment-combo-box {
   display: inline;
